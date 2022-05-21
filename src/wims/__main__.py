@@ -15,18 +15,37 @@ def main():
     parser.add_argument('--categories', '-c', default='', type=str, help="specify the category/ies of an object.")
     parser.add_argument('--location', '-l', default='', type=str,
                         help="Goes together with the --add flag. Used to specify location of an object.")
+    parser.add_argument('--show', '-s', action='store_true', dest='show',
+                        help="Show database as a dataframe.")
+    parser.add_argument('--update', '-u', default='', type=str,
+                        help="Set this flag to update attributes of an existing element.")
 
     flags = parser.parse_args()
 
     wims = WIMS()
 
     if flags.add:
-        new_element = Element(item_name=flags.add, location=flags.location, categories=flags.categories or None,
+        new_element = Element(item_name=flags.add,
+                              location=flags.location,
+                              categories=flags.categories.split('|') or None,
                               description=flags.description or None)
 
         wims.add_element(element=new_element)
+
+    elif flags.update:
+        wims.update_element(which_element=flags.update,
+                            new_loc=flags.location,
+                            new_categories=flags.categories.split('|') if flags.categories else None,
+                            new_description=flags.description)
+
     elif flags.info:
-        wims.get_info(flags.info)
+        if flags.categories:
+            wims.get_category_elements(flags.categories)
+        else:
+            wims.get_element_info(flags.info)
+
+    elif flags.show:
+        wims.db2df()
 
 
 if __name__ == '__main__':
