@@ -9,7 +9,9 @@ def main():
     # todo add argument when lending an object to someone
     parser.add_argument('--info', '-i', default='', type=str,
                         help="Give info about one object, category or location.")
-    parser.add_argument('--add', '-a', default='', type=str, help="Add element with given name to database.")
+    parser.add_argument('--add', '-a', default='', type=str,
+                        help="Add element with given name to database."
+                             "Example: wims -a 'veloversicherun karte' -l 'zurich' -c 'veloversicherung' -d 'Im blauem Ordner'")
     parser.add_argument('--description', '-d', default='', type=str,
                         help="Add or specify description of an element or location.")
     parser.add_argument('--categories', '-c', default='', type=str, help="specify the category/ies of an object.")
@@ -19,6 +21,13 @@ def main():
                         help="Show database as a dataframe.")
     parser.add_argument('--update', '-u', default='', type=str,
                         help="Set this flag to update attributes of an existing element.")
+    parser.add_argument(
+        '--lend', default='', type=str,
+        help="When lending an object to someone, location and location history are updated to that persons name."
+             " Example usage: 'wims -u laptop --lend John'."
+    )
+    parser.add_argument('--unlend', default='', type=str,
+                        help="When receiving a lent object, location and location history are updated to the location before lending.")
 
     flags = parser.parse_args()
 
@@ -33,10 +42,13 @@ def main():
         wims.add_element(element=new_element)
 
     elif flags.update:
-        wims.update_element(which_element=flags.update,
-                            new_loc=flags.location,
-                            new_categories=flags.categories.split('|') if flags.categories else None,
-                            new_description=flags.description)
+        if flags.lend:
+            wims.lend(which_element=flags.update, recipient=flags.lend)
+        else:
+            wims.update_element(which_element=flags.update,
+                                new_loc=flags.location,
+                                new_categories=flags.categories.split('|') if flags.categories else None,
+                                new_description=flags.description)
 
     elif flags.info:
         if flags.categories:
@@ -46,6 +58,9 @@ def main():
 
     elif flags.show:
         wims.db2df()
+
+    elif flags.unlend:
+        wims.unlend(which_element=flags.unlend)
 
 
 if __name__ == '__main__':

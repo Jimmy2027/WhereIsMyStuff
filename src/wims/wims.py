@@ -1,12 +1,12 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from pprint import pprint
 from typing import Iterable, Optional
 
 import pandas as pd
 from modun.file_io import json2dict
 from pymongo import MongoClient
-from pprint import pprint
 
 
 @dataclass
@@ -82,3 +82,38 @@ class WIMS:
 
         df = pd.DataFrame(data=df_maker()).set_index('item_name')
         pprint(df)
+
+    def lend(self, which_element: str, recipient: str):
+        """
+        Update location and location history to the recipients name.
+        Add "lent" to categories.
+        """
+        print('lending')
+        curr_categories = self.connect().find_one({'item_name': which_element})['categories']
+        new_categories = list({*curr_categories, 'lent'})
+        self.update_element(
+            which_element=which_element,
+            new_loc=recipient,
+            new_categories=new_categories
+        )
+
+    def unlend(self, which_element: str):
+        """
+        Update location and location history to the location before lending.
+        """
+        element_dict = self.connect().find_one({'item_name': which_element})
+
+        # get the location before the lending
+        previous_loc = element_dict['location_history'][list(element_dict['location_history'])[1]]
+
+        self.update_element(
+            which_element=which_element,
+            new_loc=previous_loc,
+            new_categories=list(set(element_dict['categories']) - {'lent'})
+        )
+
+
+if __name__ == '__main__':
+    wims = WIMS()
+    # wims.lend("woko wäschechip 1", "John")
+    wims.unlend("woko wäschechip 1")
