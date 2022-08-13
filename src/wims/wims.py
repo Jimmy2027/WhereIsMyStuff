@@ -95,7 +95,7 @@ class WIMS:
     def remove_element(self, which_element: str):
         self.collection.delete_one({'item_name': which_element})
 
-    def sync_wims_table(self):
+    def sync_wims_table(self, overwrite: bool = False):
         """
         Sync the csv file with the wims database.
         Since the md file gets updated at every change of the db, if there is a discrepancy,
@@ -104,7 +104,7 @@ class WIMS:
         md_path = Path(self.config_dict['wims_md_path']).expanduser()
         db_df = self.db2df(return_df=True).drop(columns=['_id', 'location_history'])
 
-        if md_path.exists():
+        if md_path.exists() and not overwrite:
             md_df: pd.DataFrame = mardown2df(md_path).dropna(subset=['item_name'])
 
             db_items = set(db_df['item_name'])
@@ -168,8 +168,15 @@ class WIMS:
             new_categories=list(set(element_dict['categories']) - {'lent'})
         )
 
+    def rename_element(self, which_element: str, new_name: str):
+        element_dict = self.connect().find_one({'item_name': which_element})
+        element_dict['item_name'] = new_name
+        self.collection.update_one({'_id': element_dict['_id']}, {"$set": {'item_name': new_name}})
+        self.sync_wims_table(overwrite=True)
+
 
 if __name__ == '__main__':
     wims = WIMS()
     # wims.lend("woko wäschechip 1", "John")
+    wims.rename_element('key', 'stolen bike key')
     wims.sync_wims_table()

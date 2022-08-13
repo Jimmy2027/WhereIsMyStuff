@@ -31,7 +31,7 @@ def main():
 
     parser.add_argument(
         '--remove', default=False, action="store_true",
-        help="To remove an element, type: wims -u 'elemen2remove --remove.")
+        help="To remove an element, type: wims -u 'element2remove --remove.")
 
     flags = parser.parse_args()
 
@@ -68,7 +68,7 @@ def main():
     elif flags.unlend:
         wims.unlend(which_element=flags.unlend)
 
-    wims.sync_wims_table()
+    wims.sync_wims_table(overwrite=True)
 
 
 if __name__ == '__main__':
