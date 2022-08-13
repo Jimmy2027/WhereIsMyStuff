@@ -9,6 +9,21 @@ from modun.file_io import json2dict
 from pymongo import MongoClient
 
 
+def mardown2df(md_fn: Path):
+    # Read a markdown file, getting the header from the first row and inex from the second column
+    # Drop the left-most and right-most null columns
+    # Drop the header underline row
+
+    df = pd.read_table(
+        md_fn, sep="|", header=0, index_col=1, skipinitialspace=True, skip_blank_lines=True
+    ).dropna(axis=1, how='all').iloc[1:]
+    df.columns = df.columns.str.strip()
+    for col in df.select_dtypes('object'):
+        df[col] = df[col].str.strip()
+
+    return df
+
+
 @dataclass
 class Element:
     item_name: str
@@ -27,13 +42,14 @@ class Element:
 class WIMS:
     json_config_fn = Path('~/.config/wims.json').expanduser()
     collection = None
+    config_dict: dict = None
 
     def __post_init__(self):
+        self.config_dict = json2dict(self.json_config_fn)
         self.collection = self.connect()
 
     def connect(self):
-        mongodb_config = json2dict(self.json_config_fn)
-        mongodb_uri = mongodb_config['mongodb_URI']
+        mongodb_uri = self.config_dict['mongodb_URI']
         client = MongoClient(mongodb_uri)
         db = client.ppb
         return db.wims
@@ -76,12 +92,52 @@ class WIMS:
 
         self.collection.update_one({'item_name': which_element}, {"$set": {k: v for k, v in new_values.items() if v}})
 
-    def db2df(self):
+    def remove_element(self, which_element: str):
+        self.collection.delete_one({'item_name': which_element})
+
+    def sync_wims_table(self):
+        """
+        Sync the csv file with the wims database.
+        Since the md file gets updated at every change of the db, if there is a discrepancy,
+         it can only mean that the md file was updated.
+        """
+        md_path = Path(self.config_dict['wims_md_path']).expanduser()
+        db_df = self.db2df(return_df=True).drop(columns=['_id', 'location_history'])
+
+        if md_path.exists():
+            md_df: pd.DataFrame = mardown2df(md_path).dropna(subset=['item_name'])
+
+            db_items = set(db_df['item_name'])
+
+            for idx, row in md_df.iterrows():
+                # if new element was added to md, add it to the db
+                if row['item_name'] not in db_items:
+                    new_element = Element(item_name=row.item_name, location=row.location, categories=row.categories,
+                                          description=row.description)
+                    self.add_element(new_element)
+
+                # otherwise, if a value was updated in the md, update it also in the db
+                elif {
+                    # eval(v) is done to convert the string representation of the list to a list
+                    k: v if k != 'categories' else eval(v) for k, v in row.to_dict().items()
+                } != db_df.loc[db_df['item_name'] == row.item_name].iloc[0].to_dict():
+                    self.update_element(
+                        which_element=row.item_name,
+                        new_loc=row.location,
+                        new_categories=row.categories,
+                        new_description=row.description,
+                    )
+
+        db_df.to_markdown(md_path)
+
+    def db2df(self, return_df: bool = False) -> Optional[pd.DataFrame]:
         def df_maker():
             yield from self.collection.find({})
 
-        df = pd.DataFrame(data=df_maker()).set_index('item_name')
-        pprint(df)
+        df = pd.DataFrame(data=df_maker())
+        if return_df:
+            return df
+        pprint(df.set_index('item_name'))
 
     def lend(self, which_element: str, recipient: str):
         """
@@ -116,4 +172,4 @@ class WIMS:
 if __name__ == '__main__':
     wims = WIMS()
     # wims.lend("woko wäschechip 1", "John")
-    wims.unlend("woko wäschechip 1")
+    wims.sync_wims_table()

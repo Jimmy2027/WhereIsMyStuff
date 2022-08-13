@@ -6,7 +6,6 @@ from wims.wims import WIMS, Element
 
 def main():
     parser = argparse.ArgumentParser()
-    # todo add argument when lending an object to someone
     parser.add_argument('--info', '-i', default='', type=str,
                         help="Give info about one object, category or location.")
     parser.add_argument('--add', '-a', default='', type=str,
@@ -27,7 +26,12 @@ def main():
              " Example usage: 'wims -u laptop --lend John'."
     )
     parser.add_argument('--unlend', default='', type=str,
-                        help="When receiving a lent object, location and location history are updated to the location before lending.")
+                        help="When receiving a lent object, location and location history "
+                             "are updated to the location before lending.")
+
+    parser.add_argument(
+        '--remove', default=False, action="store_true",
+        help="To remove an element, type: wims -u 'elemen2remove --remove.")
 
     flags = parser.parse_args()
 
@@ -44,6 +48,8 @@ def main():
     elif flags.update:
         if flags.lend:
             wims.lend(which_element=flags.update, recipient=flags.lend)
+        elif flags.remove:
+            wims.remove_element(which_element=flags.update)
         else:
             wims.update_element(which_element=flags.update,
                                 new_loc=flags.location,
@@ -61,6 +67,8 @@ def main():
 
     elif flags.unlend:
         wims.unlend(which_element=flags.unlend)
+
+    wims.sync_wims_table()
 
 
 if __name__ == '__main__':
