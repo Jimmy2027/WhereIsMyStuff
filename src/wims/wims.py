@@ -105,7 +105,7 @@ class WIMS:
         db_df = self.db2df(return_df=True).drop(columns=['_id', 'location_history'])
 
         if md_path.exists() and not overwrite:
-            md_df: pd.DataFrame = mardown2df(md_path).dropna(subset=['item_name'])
+            md_df: pd.DataFrame = markdown2df(md_path).dropna(subset=['item_name'])
 
             db_items = set(db_df['item_name'])
 
