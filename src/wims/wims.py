@@ -9,7 +9,7 @@ from modun.file_io import json2dict
 from pymongo import MongoClient
 
 
-def mardown2df(md_fn: Path):
+def markdown2df(md_fn: Path):
     # Read a markdown file, getting the header from the first row and index from the second column
     # Drop the left-most and right-most null columns
     # Drop the header underline row
