@@ -7,6 +7,7 @@ from typing import Iterable, Optional
 import pandas as pd
 from modun.file_io import json2dict
 from pymongo import MongoClient
+from fuzzywuzzy import fuzz
 
 
 def markdown2df(md_fn: Path):
@@ -59,9 +60,10 @@ class WIMS:
         self.collection.insert_one(element.__dict__)
 
     def get_element_info(self, element_name: str):
-        # todo: add verbose flag?
-
-        for item in self.collection.find({'item_name': element_name}):
+        df = pd.DataFrame({'item_name': [e['item_name'] for e in self.collection.find()]})
+        df['fuzzy_match'] = df.apply(lambda x: fuzz.ratio(x.item_name, element_name), axis=1)
+        df = df.sort_values(by='fuzzy_match', ascending=False)
+        for item in self.collection.find({'item_name': df['item_name'].to_list()[0]}):
             pprint(item)
 
     def get_category_elements(self, which_categories: str):
@@ -177,6 +179,7 @@ class WIMS:
 
 if __name__ == '__main__':
     wims = WIMS()
+    wims.get_element_info('headlamp')
     # wims.lend("woko wäschechip 1", "John")
-    wims.rename_element('key', 'stolen bike key')
-    wims.sync_wims_table()
+    # wims.rename_element('key', 'stolen bike key')
+    # wims.sync_wims_table()
