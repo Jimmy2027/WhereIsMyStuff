@@ -177,7 +177,7 @@ class WIMS:
         self.sync_wims_table(overwrite=True)
 
     def get_all_categories(self):
-        categories = {cat for e in self.collection.find() for cat in e['categories'] }
+        categories = {cat for e in self.collection.find() for cat in e['categories']}
         print(categories)
 
 
