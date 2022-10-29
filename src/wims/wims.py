@@ -5,9 +5,9 @@ from pprint import pprint
 from typing import Iterable, Optional
 
 import pandas as pd
+from fuzzywuzzy import fuzz
 from modun.file_io import json2dict
 from pymongo import MongoClient
-from fuzzywuzzy import fuzz
 
 
 def markdown2df(md_fn: Path):
@@ -175,6 +175,10 @@ class WIMS:
         element_dict['item_name'] = new_name
         self.collection.update_one({'_id': element_dict['_id']}, {"$set": {'item_name': new_name}})
         self.sync_wims_table(overwrite=True)
+
+    def get_all_categories(self):
+        categories = {cat for e in self.collection.find() for cat in e['categories'] }
+        print(categories)
 
 
 if __name__ == '__main__':

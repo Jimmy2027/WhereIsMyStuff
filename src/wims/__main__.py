@@ -31,13 +31,17 @@ def main():
 
     parser.add_argument(
         '--remove', default=False, action="store_true",
-        help="To remove an element, type: wims -u 'element2remove --remove.")
+        help="To remove an element, type: wims -u element2remove --remove.")
 
     flags = parser.parse_args()
 
     wims = WIMS()
 
     if flags.add:
+        for item in {'location', 'categories', 'description'}:
+            if not getattr(flags, item):
+                setattr(flags, item, input(f"{item}: \n"))
+
         new_element = Element(item_name=flags.add,
                               location=flags.location,
                               categories=flags.categories.split('|') or None,
@@ -51,6 +55,10 @@ def main():
         elif flags.remove:
             wims.remove_element(which_element=flags.update)
         else:
+            for item in {'location', 'categories', 'description'}:
+                if not getattr(flags, item):
+                    setattr(flags, item, input(f"{item}: \n"))
+
             wims.update_element(which_element=flags.update,
                                 new_loc=flags.location,
                                 new_categories=flags.categories.split('|') if flags.categories else None,
@@ -67,6 +75,9 @@ def main():
 
     elif flags.unlend:
         wims.unlend(which_element=flags.unlend)
+
+    elif flags.categories:
+        wims.get_all_categories()
 
     wims.sync_wims_table(overwrite=True)
 
