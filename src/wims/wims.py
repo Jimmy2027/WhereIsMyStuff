@@ -61,7 +61,7 @@ class WIMS:
 
     def get_element_info(self, element_name: str):
         df = pd.DataFrame({'item_name': [e['item_name'] for e in self.collection.find()]})
-        df['fuzzy_match'] = df.apply(lambda x: fuzz.ratio(x.item_name, element_name), axis=1)
+        df['fuzzy_match'] = df.apply(lambda x: fuzz.token_set_ratio(x.item_name, element_name), axis=1)
         df = df.sort_values(by='fuzzy_match', ascending=False)
         for item in self.collection.find({'item_name': df['item_name'].to_list()[0]}):
             pprint(item)
@@ -183,7 +183,7 @@ class WIMS:
 
 if __name__ == '__main__':
     wims = WIMS()
-    wims.get_element_info('headlamp')
+    wims.get_element_info('aquara')
     # wims.lend("woko wäschechip 1", "John")
     # wims.rename_element('key', 'stolen bike key')
     # wims.sync_wims_table()
